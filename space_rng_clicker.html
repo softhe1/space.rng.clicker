@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space RNG Clicker</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #wallet {
+      font-size: 1.2rem;
+      margin-top: 10px;
+    }
+    #result {
+      font-size: 1.5rem;
+      margin: 20px 0;
+    }
+    #inventoryTab {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #111;
+      padding: 20px;
+      z-index: 10;
+      max-height: 70%;
+      overflow-y: auto;
+      width: 80%;
+      color: white;
+      text-align: left;
+      border: 2px solid #444;
+    }
+    .inventory-item {
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌌 Space RNG Clicker 🌠</h1>
+  <div id="wallet">Wallet: 0 coins</div>
+  <button onclick="roll()">Roll</button>
+  <button onclick="quickRoll()">Quick Roll</button>
+  <button onclick="toggleInventory()">Inventory</button>
+  <div id="result">Click roll to begin!</div>
+
+  <div class="overlay" id="overlay" onclick="toggleInventory()"></div>
+
+  <div id="inventoryTab">
+    <h2>🎒 Your Inventory</h2>
+    <div id="inventoryItems"></div>
+    <button onclick="toggleInventory()">Close Inventory</button>
+  </div>
+
+  <script>
+    let coins = 0;
+    let inventory = [];
+
+    const walletDisplay = document.getElementById("wallet");
+    const resultDisplay = document.getElementById("result");
+    const inventoryItemsDisplay = document.getElementById("inventoryItems");
+
+    // Define possible outcomes
+    const outcomes = [
+      { text: "🪙 10 Coins", weight: 50, reward: 10, rarity: "common", sellPrice: 10 },
+      { text: "🪙 100 Coins", weight: 15, reward: 100, rarity: "common", sellPrice: 100 },
+      { text: "🍞 Stale Bread", weight: 30, rarity: "common", sellPrice: 1 },
+      { text: "🧹 Dusty Stick", weight: 25, rarity: "common", sellPrice: 5 },
+      { text: "💰 Space Treasure", weight: 12, rarity: "uncommon", sellPrice: 100 },
+      { text: "🔮 Galactic Orb", weight: 8, rarity: "uncommon", sellPrice: 200 },
+      { text: "⚡ Electric Rod", weight: 6, rarity: "uncommon", sellPrice: 150 },
+      { text: "🚀 Space Fuel", weight: 5, rarity: "uncommon", sellPrice: 250 },
+      { text: "💎 Diamond", weight: 4, rarity: "rare", sellPrice: 500 },
+      { text: "🌑 Moon Rock", weight: 3, rarity: "rare", sellPrice: 400 },
+      { text: "🧬 Alien Artifact", weight: 2, rarity: "rare", sellPrice: 600 },
+      { text: "💥 Cosmic Bomb", weight: 1.5, rarity: "epic", sellPrice: 1000 },
+      { text: "🔮 Ancient Amulet", weight: 1.2, rarity: "epic", sellPrice: 1200 },
+      { text: "👑 Cosmic Crown", weight: 0.5, rarity: "legendary", sellPrice: 5000 },
+      { text: "🕳️ Void Relic", weight: 0.2, rarity: "legendary", sellPrice: 10000 }
+    ];
+
+    // Update wallet display
+    function updateWallet() {
+      walletDisplay.innerText = `Wallet: ${coins} coins`;
+    }
+
+    // Roll function
+    function roll() {
+      const totalWeight = outcomes.reduce((sum, item) => sum + item.weight, 0);
+      let rand = Math.random() * totalWeight;
+      for (let item of outcomes) {
+        if (rand < item.weight) {
+          resultDisplay.innerText = `You got: ${item.text} (${item.rarity})`;
+
+          if (item.reward === 10 || item.reward === 100) {
+            // Coins go directly to wallet
+            coins += item.reward;
+            updateWallet();
+          } else {
+            // Add to inventory
+            if (inventory.length < 200) {
+              inventory.push({ ...item, isFavorited: false });
+              renderInventory();
+            }
+          }
+          return;
+        }
+        rand -= item.weight;
+      }
+    }
+
+    // Render inventory UI
+    function renderInventory() {
+      inventoryItemsDisplay.innerHTML = "";
+      inventory.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.classList.add('inventory-item');
+        div.innerHTML = `${item.text} (${item.rarity}) - Sell for ${item.sellPrice} coins 
+                         <button onclick="sellItem(${index})">Sell</button> 
+                         <button onclick="toggleFavorite(${index})">${item.isFavorited ? 'Unfavorite' : 'Favorite'}</button>`;
+        inventoryItemsDisplay.appendChild(div);
+      });
+    }
+
+    // Sell individual item
+    function sellItem(index) {
+      const item = inventory[index];
+      if (!item.isFavorited) {
+        coins += item.sellPrice;
+        inventory.splice(index, 1); // Remove item from inventory
+        updateWallet();
+        renderInventory();
+      } else {
+        alert("You can't sell a favorite item! Unfavorite it first.");
+      }
+    }
+
+    // Toggle favorite status
+    function toggleFavorite(index) {
+      inventory[index].isFavorited = !inventory[index].isFavorited;
+      renderInventory();
+    }
+
+    // Toggle inventory view
+    function toggleInventory() {
+      const inventoryTab = document.getElementById("inventoryTab");
+      const overlay = document.getElementById("overlay");
+      const isVisible = inventoryTab.style.display === "block";
+      inventoryTab.style.display = isVisible ? "none" : "block";
+      overlay.style.display = isVisible ? "none" : "block";
+    }
+
+    // Quick roll function
+    function quickRoll() {
+      for (let i = 0; i < 5; i++) roll();
+    }
+
+    updateWallet(); // Initialize wallet on page load
+  </script>
+</body>
+</html>
+
+
